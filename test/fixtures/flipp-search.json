@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "name": "Milk",
+      "merchant_name": "Example Grocer",
+      "current_price": 3.49,
+      "original_price": 4.29,
+      "valid_from": "2026-11-12T05:00:00+00:00",
+      "valid_to": "2026-11-20T04:59:59+00:00",
+      "item_type": "flyer"
+    },
+    {
+      "name": "Milk",
+      "merchant_name": "Other Mart",
+      "current_price": 4.99,
+      "original_price": null,
+      "valid_from": "2026-11-13T05:00:00+00:00",
+      "valid_to": "2026-11-19T04:59:59+00:00",
+      "item_type": "flyer"
+    },
+    {
+      "name": "Bread",
+      "merchant_name": "Example Grocer",
+      "current_price": 2.5,
+      "original_price": 3.0,
+      "valid_from": "2026-11-01T05:00:00+00:00",
+      "valid_to": "2026-11-30T04:59:59+00:00",
+      "item_type": "flyer"
+    },
+    {
+      "name": "Expired Milk",
+      "merchant_name": "Example Grocer",
+      "current_price": 1.0,
+      "original_price": 2.0,
+      "valid_from": "2026-10-01T05:00:00+00:00",
+      "valid_to": "2026-11-01T04:59:59+00:00",
+      "item_type": "flyer"
+    },
+    {
+      "name": "Future Milk",
+      "merchant_name": "Example Grocer",
+      "current_price": 1.5,
+      "original_price": 2.5,
+      "valid_from": "2026-12-01T05:00:00+00:00",
+      "valid_to": "2026-12-08T04:59:59+00:00",
+      "item_type": "flyer"
+    },
+    {
+      "name": "No Merchant"
+    }
+  ]
+}
