@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { MealsService, WATCH_ITEMS } from '../dist/service.js';
+import { MealsService, MAX_COMMIT_ATTEMPTS, WATCH_ITEMS } from '../dist/service.js';
 import { parseFlyerDeals } from '../dist/flyer.js';
 
 const NOW = Date.parse('2026-11-14T12:00:00Z');
@@ -16,16 +16,41 @@ async function searchFixture(url) {
   };
 }
 
-function store(initial = new Map()) {
-  const values = initial;
+function store(initial = new Map(), hooks = {}) {
+  const entries = new Map(
+    [...initial.entries()].map(([key, value], index) => [
+      key,
+      { value: structuredClone(value), version: index + 1 },
+    ]),
+  );
+  let nextVersion = entries.size + 1;
+  const observeKey = (key) => {
+    const entry = entries.get(key);
+    return {
+      value: entry ? structuredClone(entry.value) : undefined,
+      comparison: entry ? String(entry.version) : 'missing',
+    };
+  };
   return {
-    values,
-    async lookup(key) {
-      return values.get(key);
+    entries,
+    values: {
+      get size() { return entries.size; },
+      get: (key) => entries.get(key)?.value,
     },
-    async register(key, value, opts) {
-      opts?.assertCurrent?.();
-      values.set(key, structuredClone(value));
+    async observe(key) {
+      await hooks.onObserve?.(key);
+      return observeKey(key);
+    },
+    async compareAndApply(key, comparison, intent) {
+      await hooks.onCompare?.(key, comparison, intent, entries);
+      const current = observeKey(key);
+      if (comparison !== current.comparison) return { status: 'conflict', current };
+      if (intent.operation === 'update' && intent.action === 'set') {
+        nextVersion += 1;
+        entries.set(key, { value: structuredClone(intent.value), version: nextVersion });
+        return { status: 'applied' };
+      }
+      return { status: 'unchanged' };
     },
   };
 }
@@ -228,4 +253,75 @@ test('corrupt stored state is ignored instead of breaking the next read', async 
   const { service: meals } = service(async () => fixture, backing);
   assert.deepEqual((await meals.getMeals(scope())).meals, []);
   assert.equal((await meals.getSetup(scope())).postalCodeSet, false);
+});
+
+test('interleaved same-agent writes across different fields and within grocery both persist', async () => {
+  let observes = 0;
+  let release;
+  const bothObserved = new Promise((resolve) => { release = resolve; });
+  const backing = store(new Map(), {
+    async onObserve() {
+      observes += 1;
+      if (observes === 2) release();
+      await bothObserved;
+    },
+  });
+  const meals = new MealsService(async () => fixture, backing, () => NOW);
+  const [groceryRes, mealRes] = await Promise.all([
+    meals.addGrocery({ name: 'Oats', quantity: '1 bag' }, scope('alice')),
+    meals.setMeal({ day: '2026-11-16', meal: 'dinner', dish: 'Pasta' }, scope('alice')),
+  ]);
+  assert.equal(groceryRes.saved, true);
+  assert.equal(mealRes.saved, true);
+  assert.deepEqual((await meals.getGrocery(scope('alice'))).items.map((item) => item.name), ['Oats']);
+  assert.deepEqual((await meals.getMeals(scope('alice'))).meals.map((meal) => meal.dish), ['Pasta']);
+
+  observes = 0;
+  let releaseSecond;
+  const secondObserved = new Promise((resolve) => { releaseSecond = resolve; });
+  const sharedStore = store(new Map(), {
+    async onObserve() {
+      observes += 1;
+      if (observes === 2) releaseSecond();
+      await secondObserved;
+    },
+  });
+  const sharedMeals = new MealsService(async () => fixture, sharedStore, () => NOW);
+  await Promise.all([
+    sharedMeals.addGrocery({ name: 'Oats' }, scope('alice')),
+    sharedMeals.addGrocery({ name: 'Milk' }, scope('alice')),
+  ]);
+  assert.deepEqual((await sharedMeals.getGrocery(scope('alice'))).items.map((item) => item.name), ['Milk', 'Oats']);
+  assert.equal((await sharedMeals.getGrocery(scope('bob'))).count, 0);
+});
+
+test('bounded conflict handling rejects runaway contention and mid-flight revocation', async () => {
+  let bumps = 0;
+  let version = 100;
+  const contended = {
+    async observe() {
+      return { value: undefined, comparison: `v${version}` };
+    },
+    async compareAndApply(key) {
+      bumps += 1;
+      version += 1;
+      return { status: 'conflict', current: { value: undefined, comparison: `v${version}` } };
+    },
+  };
+  const meals = new MealsService(async () => fixture, contended, () => NOW);
+  await assert.rejects(meals.addGrocery({ name: 'Eggs' }, scope('alice')), /concurrent updates/);
+  assert.equal(bumps, MAX_COMMIT_ATTEMPTS);
+
+  const backing = store();
+  let calls = 0;
+  const revokingScope = {
+    agentId: 'alice',
+    assertCurrent() {
+      calls += 1;
+      if (calls >= 3) throw new Error('revoked mid-flight');
+    },
+  };
+  const checkedMeals = new MealsService(async () => fixture, backing, () => NOW);
+  await assert.rejects(checkedMeals.addGrocery({ name: 'Apples' }, revokingScope), /revoked mid-flight/);
+  assert.equal(backing.values.size, 0);
 });

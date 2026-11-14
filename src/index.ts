@@ -130,7 +130,6 @@ export default definePluginEntry({
   name: 'Meals',
   description: 'Agent-scoped meal plans, grocery lists, and optional flyer deal search; no channel delivery or background watch.',
   register(api) {
-    let service: MealsService | undefined;
     api.registerTool(
       {
         contextVersion: 2,
@@ -144,12 +143,12 @@ export default definePluginEntry({
             parameters: definition.parameters,
             async execute(_id: string, params: Record<string, unknown>, signal?: AbortSignal) {
               context.assertInvocationCurrent();
-              service ??= new MealsService(
+              const service = new MealsService(
                 fetchJson,
-                api.runtime.state.openKeyedStoreV2<MealsState>({
-                  namespace: 'meals-state',
-                  retention: 'retained',
-                }),
+                api.runtime.state.openKeyedStoreV2<MealsState>(
+                  { namespace: 'meals-state', retention: 'retained' },
+                  { assertCurrent: context.assertInvocationCurrent },
+                ),
               );
               const result = await definition.run(service, params, {
                 agentId,
