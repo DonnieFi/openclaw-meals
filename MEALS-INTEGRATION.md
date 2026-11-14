@@ -1,6 +1,6 @@
 # Meals hookup contract
 
-Plugin id: `meals`. Package: `openclaw-meals-plugin`, version `0.1.0`. There is no
+Plugin id: `meals-planner`. Package: `openclaw-meals-plugin`, version `0.1.0`. There is no
 published ClawHub coordinate yet. Do not invent one.
 
 ## Native tools

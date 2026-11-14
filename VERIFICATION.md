@@ -7,8 +7,10 @@ release or a production-readiness claim.
 
 - Node 26.13.0; OpenClaw CLI 2026.11.3 (`17db247`).
 - `npm install --ignore-scripts`, `npm run build`, and `npm test`.
-- 11/11 tests pass on a supported Node runtime. The tests use a fake keyed store,
+- 12/12 tests pass on a supported Node runtime. The tests use a fake keyed store,
   a fixed clock, and a fictional flyer fixture; no network or host state is touched.
+  Coverage includes a saved IANA timezone deciding which meals are still upcoming,
+  and the 12-item flyer note leaving the rest on the grocery list or later meals.
 - Source typecheck against a local Plugin SDK declaration shim. The installed
   OpenClaw distribution did not include the plugin-entry declaration file.
 - Native Template checks for the bundled copy: `validate`, offline `dev`,
@@ -23,7 +25,7 @@ release or a production-readiness claim.
 `openclaw-meals-plugin@0.1.0`
 
 SHA-256:
-`7a6c27a84afdc1d418c1197c48e3a907d7654832d42c202225ca923de28f4fa6`
+`529571bd0d102e0d251f68132be5a426bf8134fd19b02ee1add0e0054a1d0558`
 
 The package contains compiled ESM, the plugin manifest, package metadata, README,
 and LICENSE. It contains no `node_modules`, test fixture, postal code, store list,

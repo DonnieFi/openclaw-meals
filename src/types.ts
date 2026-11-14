@@ -18,6 +18,7 @@ export type GroceryItem = {
 export type MealsSetup = {
   postalCode: string | null;
   stores: string[];
+  timezone: string | null;
   updatedAt: string | null;
 };
 

@@ -7,7 +7,27 @@ export function isDate(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
-export function today(now: number): string {
+export function isTimeZone(value: string): boolean {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Calendar date for `now`. A saved IANA zone wins. Otherwise this is the gateway host's local date. */
+export function today(now: number, timeZone?: string | null): string {
+  if (timeZone) {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(now));
+    const part = (type: string) => parts.find((entry) => entry.type === type)?.value ?? '';
+    return `${part('year')}-${part('month')}-${part('day')}`;
+  }
   const date = new Date(now);
   return [
     date.getFullYear(),

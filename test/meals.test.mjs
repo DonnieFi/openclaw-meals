@@ -176,6 +176,18 @@ test('watch reports the 12-item bound and missing setup without fetching', async
   assert.equal(watch.uniqueItemCount, WATCH_ITEMS + 3);
   assert.equal(watch.truncated, true);
   assert.match(watch.note, /Checked 12 of 15/);
+  assert.match(watch.note, /later meals/);
+});
+
+test('a saved timezone decides which meals are still upcoming', async () => {
+  const lateUtc = Date.parse('2026-11-15T02:30:00Z');
+  const backing = store();
+  const meals = new MealsService(async () => fixture, backing, () => lateUtc);
+  await meals.saveSetup({ timezone: 'America/Halifax', postalCode: 'X0X 0X0' }, scope());
+  await meals.setMeal({ day: '2026-11-14', meal: 'dinner', dish: 'Stew', ingredients: ['Beans'] }, scope());
+  const watch = await meals.checkFlyerWatch({}, scope());
+  assert.equal(watch.uniqueItemCount, 1);
+  assert.equal((await meals.getSetup(scope())).timezone, 'America/Halifax');
 });
 
 test('a saved week suggestion is returned by get_meals but does not change the plan', async () => {
