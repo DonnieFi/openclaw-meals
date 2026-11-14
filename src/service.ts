@@ -1,6 +1,5 @@
 import { FLYER_ENDPOINT, flyerResult, flyerSearchUrl } from './flyer.js';
 import {
-  addDays,
   asString,
   asStringArray,
   cleanText,
