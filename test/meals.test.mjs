@@ -90,16 +90,16 @@ test('grocery list upserts by name, preserves omitted fields, and removes case-i
 test('setup reports presence, masks the postal code, dedupes stores, and can clear fields', async () => {
   const { service: meals } = service();
   const saved = await meals.saveSetup({
-    postalCode: 'k1a 0a6',
+    postalCode: 'x0x 0x0',
     stores: ['Example Grocer', ' example grocer ', 'Other Mart'],
   }, scope());
   assert.equal(saved.postalCodeSet, true);
-  assert.equal(saved.postalCodeHint, 'K1A***');
+  assert.equal(saved.postalCodeHint, 'X0X***');
   assert.deepEqual(saved.stores, ['Example Grocer', 'Other Mart']);
   assert.equal(saved.flyerSearchAvailable, true);
   const serialized = JSON.stringify(saved);
-  assert.equal(serialized.includes('K1A 0A6'), false);
-  assert.equal(serialized.includes('K1A0A6'), false);
+  assert.equal(serialized.includes('X0X 0X0'), false);
+  assert.equal(serialized.includes('X0X0X0'), false);
   const kept = await meals.saveSetup({ stores: [] }, scope());
   assert.equal(kept.postalCodeSet, true);
   assert.deepEqual(kept.stores, []);
@@ -123,7 +123,7 @@ test('flyer search maps deals, removes expired and future items, and filters by 
 
   const { service: meals } = service();
   assert.equal((await meals.searchFlyerDeals({ item: 'milk' }, scope())).configured, false);
-  await meals.saveSetup({ postalCode: 'K1A 0A6' }, scope());
+  await meals.saveSetup({ postalCode: 'X0X 0X0' }, scope());
   const result = await meals.searchFlyerDeals({ item: 'milk', limit: 2 }, scope());
   assert.equal(result.configured, true);
   assert.equal(result.deals.length, 2);
@@ -136,20 +136,20 @@ test('a flyer failure stays useful and never echoes the postal code or request U
     calls.push(url);
     throw new Error(`network failed for ${url}`);
   });
-  await meals.saveSetup({ postalCode: 'K1A 0A6' }, scope());
+  await meals.saveSetup({ postalCode: 'X0X 0X0' }, scope());
   const result = await meals.searchFlyerDeals({ item: 'milk' }, scope());
   assert.equal(result.configured, true);
   assert.equal(result.deals.length, 0);
   assert.match(result.error, /unavailable/);
   const serialized = JSON.stringify(result);
-  assert.equal(serialized.includes('K1A'), false);
+  assert.equal(serialized.includes('X0X'), false);
   assert.equal(serialized.includes('backflipp'), false);
   assert.equal(calls.length, 1);
 });
 
 test('watch uses the grocery list and upcoming meal ingredients, dedupes, and skips past meals', async () => {
   const { service: meals } = service(searchFixture);
-  await meals.saveSetup({ postalCode: 'K1A 0A6' }, scope());
+  await meals.saveSetup({ postalCode: 'X0X 0X0' }, scope());
   await meals.addGrocery({ name: 'Milk' }, scope());
   await meals.setMeal({ day: '2026-11-15', meal: 'dinner', dish: 'Bread pudding', ingredients: ['Bread', 'MILK'] }, scope());
   await meals.setMeal({ day: '2026-11-13', meal: 'dinner', dish: 'Old soup', ingredients: ['Ghost item'] }, scope());
@@ -167,7 +167,7 @@ test('watch reports the 12-item bound and missing setup without fetching', async
   const noSetup = await meals.checkFlyerWatch({}, scope());
   assert.equal(noSetup.configured, false);
   assert.equal(calls, 0);
-  await meals.saveSetup({ postalCode: 'K1A 0A6' }, scope());
+  await meals.saveSetup({ postalCode: 'X0X 0X0' }, scope());
   for (let index = 0; index < WATCH_ITEMS + 3; index += 1) {
     await meals.addGrocery({ name: `Item ${index}` }, scope());
   }
